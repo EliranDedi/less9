@@ -1,0 +1,18 @@
+ripoff of less for plan 9.
+works great in rio, not so great in plan9port.
+
+installation
+	mk install
+usage
+	man cat | less
+	less < [ text file ]
+navigation
+	/ search for string
+	n next hit
+	p previous hit
+	↑ upwards
+	↓ downwards
+notes
+	scrolling might get you disoriented. no refunds.
+bugs
+	yes
