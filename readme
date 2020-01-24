@@ -1,15 +1,13 @@
 ripoff of less for plan 9.
-works great in rio, not so great in plan9port.
+works in both plan9/plan9port (linux)
 
 installation
 	mk install
 usage
 	man cat | less
-	less < [ text file ]
+	less < /dev/text
 navigation
 	/ search for string
-	n next hit
-	p previous hit
 	↑ upwards
 	↓ downwards
 notes
