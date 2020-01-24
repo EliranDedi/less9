@@ -7,31 +7,6 @@
 #include <keyboard.h>
 #include "dat.h"
 
-/*
-DESCRIPTION
-	less ripoff
-USAGE
-	argv0 file1 [file2 ...]
-	cat file | argv0
-	man | less
-TODO
-	add ed keys
-		y - write to snarf buffer
-		m - mark
-	flags
-		-m read from manpage
-		-i read from stdin
-NOT DONE
-	everything
-	searching
-	use one big allocimage rather than screw around with positioning
-	l - look, display only lines that match regex
-	? - seek backwards
-	read from stdin/file
-	searching
-	interactive mode
-*/
-
 void
 eresized(int)
 {
@@ -58,6 +33,10 @@ grep(void)
 	grepped = 1;
 }
 
+void
+mark(void)
+{
+}
 void
 drawlines(char **lines)
 {
@@ -274,8 +253,96 @@ guisetup(void)
 
 }
 
+/* string() screws up tabs and newlines, eliminate that */
+void
+stringfmt(char *s)
+{
+	char *p;
+	char fmt[1024];
+	char *f;
+	char tab[8];
+	int tabs[256];
+	int *t = tabs;
+}
+
+Rune
+fnlookup(Rune r)
+{
+	int i;
+
+	for(i = 0; i < nelem(kbdfn); ++i)
+		if(kbdfn[i].r == r)
+			return i;
+	return -1;
+}
+
+void
+unused(void)
+{
+	print("%C: unused\n", *kbd);
+}
+
+void
+quit(void)
+{
+	print("done\n");
+	exits("done");
+}
+
+void
+redraw(void)
+{
+	draw(screen, screen->r, bigscreen, nil, bigpoint);
+	flushimage(display, 1);
+//	print("redrawn\n");
+}
+
+void
+logcmd(Fn *f)
+{
+}
+
+void
+scrolldown(void)
+{
+	int n;
+
+	n = Dy(screen->r)/font->height/10;
+	n = (n<1) ? 1 : n;
+	print("%d\n", n);
+	bigpoint.y += font->height * n;
+	alignbigpoint();
+ 	draw(screen, screen->r, display->white, nil, bigpoint);
+ 	draw(screen, screen->r, bigscreen, nil, bigpoint);
+}
+
+void
+scrollup(void)
+{
+	int n;
+
+	n = Dy(screen->r)/font->height/10;
+	n = (n<1) ? 1 : n;
+	print("%d\n", n);
+	bigpoint.y -= font->height * n;
+	alignbigpoint();
+ 	draw(screen, screen->r, display->white, nil, bigpoint);
+ 	draw(screen, screen->r, bigscreen, nil, bigpoint);
+}
+
+void
+search(void)
+{
+	prompt2();
+	drawlines(stack + *grepf);
+}
+
+
+void
 main(void)
 {
+	int fn;
+
 	if(initdraw(0,0,0) < 0)
 		sysfatal("draw:%r");
 	bio = Bfdopen(0, OREAD);
@@ -298,6 +365,10 @@ main(void)
 	draw(screen, screen->r, bigscreen, nil, bigpoint);
 	flushimage(display, 1);
 	einit(Ekeyboard);
-	for(;;)
-		eventloop();
+Loop:
+	event(&e);
+	fn = fnlookup(*kbd);
+	if(fn >= 0)
+		kbdfn[fn].f();
+	goto Loop;
 }
