@@ -34,6 +34,11 @@ grep(void)
 }
 
 void
+newline(void)
+{
+}
+
+void
 drawlines(char **lines)
 {
 	char **p;
@@ -308,7 +313,7 @@ void
 search(void)
 {
 	prompt3();
-//	drawlines(stack + *grepf);
+	mode = Msearch;
 }
 
 void
