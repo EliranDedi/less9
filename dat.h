@@ -18,9 +18,14 @@ struct Keyfn {
 typedef struct	Strimg	Strimg;
 struct Strimg {
 	Image *i;
+	ulong c;
 	char *s;
 };
 
+enum {
+	Mnormal,
+	Msearch,
+};
 
 void	quit(void);
 void	unused(void);
@@ -32,6 +37,7 @@ void	mark(void);
 void	newline(void);
 
 int	dbg;
+int	mode;
 Biobuf	*bio;
 char	*stack[8192*4];
 char	**sp = stack;
@@ -71,24 +77,33 @@ Image	*bigscreen;
 Rectangle	bigrect;
 Point	bigpoint;
 Point	cmd;
+Point	uinput;
 
-Keyfn kbdfn[]={
-	Kdown,	scrolldown,
-	Kup,	scrollup,
-	Kleft,	unused,
-	Kright,	unused,
-	'q',	quit,
-	Kesc,	quit,
-	Kdel,	quit,
-	'/',	search,
-	'r',	redraw,
-	'\n',	newline,
+Keyfn kbdfn[][32]={
+	[Mnormal]{
+		Kdown,	scrolldown,
+		Kup,	scrollup,
+		Kleft,	unused,
+		Kright,	unused,
+		'q',	quit,
+		Kesc,	quit,
+		Kdel,	quit,
+		'/',	search,
+		'r',	redraw,
+		'\n',	newline,
+		nil,	nil,
+	},
+	[Msearch]{
+		Kdel,	quit,
+		Kesc,	quit,
+		nil,	nil,
+	},
 };
 
 Strimg strimg[]={
-	nil, "look for",
-	nil, "not found",
-	nil, "found",
+	nil, DYellow,	"look for",
+	nil, DRed,	"not found",
+	nil, DGreen,	"found",
 };
 
 char	*Search = "look for";
