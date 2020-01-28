@@ -36,6 +36,7 @@ grep(void)
 void
 newline(void)
 {
+	mode = Mnormal;
 }
 
 void
@@ -126,7 +127,8 @@ prompt3(void)
 	r = Rpt(p, scrmax);
 	fillrect(r, dwhite, 0);
 	fillrect(r, sprompt, 1);
-
+	uinput = p;
+	uinput.x += Dx(r);
 }
 
 void
@@ -236,15 +238,26 @@ stringfmt(char *s)
 	int *t = tabs;
 }
 
-Rune
+Keyfn*
 fnlookup(Rune r)
 {
-	int i;
+	Keyfn *k;
 
-	for(i = 0; i < nelem(kbdfn); ++i)
-		if(kbdfn[i].r == r)
-			return i;
-	return -1;
+	for(k = kbdfn[mode]; k->r; ++k)
+		if(k->r == r)
+			return k;
+	return nil;
+}
+
+void
+fnlookup2(Rune r)
+{
+//	int i;
+//
+//	for(i = 0; i < nelem(kbdfn); ++i)
+//		if(kbdfn[i].r == r)
+//			return i;
+//	return -1;
 }
 
 void
@@ -314,6 +327,7 @@ search(void)
 {
 	prompt3();
 	mode = Msearch;
+
 }
 
 void
@@ -328,10 +342,18 @@ drawprompt(Image *i, char *s)
 	flushimage(display, 1);
 }
 
+Point
+drawchar(Point p, int *c)
+{
+	return stringn(screen, p, display->black, ZP, font, (char*)c, 1);
+}
+
 void
 main(void)
 {
 	int fn;
+	Fn *f;
+	Keyfn *kf;
 
 	if(initdraw(0,0,0) < 0)
 		sysfatal("draw:%r");
@@ -357,8 +379,12 @@ main(void)
 	einit(Ekeyboard);
 Loop:
 	event(&e);
-	fn = fnlookup(*kbd);
-	if(fn >= 0)
-		kbdfn[fn].f();
+	if(*kbd == Kdel)
+		exits("kdel");
+	kf = fnlookup(*kbd);
+	if(kf != nil){
+//		print("%p %d\n", kf, kf-kbdfn[mode]);
+		kf->f();
+	}
 	goto Loop;
 }
