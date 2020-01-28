@@ -34,10 +34,6 @@ grep(void)
 }
 
 void
-mark(void)
-{
-}
-void
 drawlines(char **lines)
 {
 	char **p;
@@ -68,7 +64,7 @@ drawlines(char **lines)
 }
 
 void
-drawprompt(void)
+drawprompt2(void)
 {
 	drawp = string(screen, drawp, display->black, drawp, font, "/");
 	flushimage(display, 1);
@@ -103,6 +99,29 @@ kbdfilter(int kbd)
 	case Kack:
 		break;
 	}
+}
+
+void
+fillrect(Rectangle r, Image *i, int f)
+{
+	if(badrect(r) || i == nil)
+		sysfatal("fillrect: bad args: %R / %p", r, i);
+	draw(screen, r, i, nil, ZP);
+	if(f)
+		flushimage(display, 1);
+}
+
+void
+prompt3(void)
+{
+	Point p;
+	Rectangle r;
+
+	p = Bottom();
+	r = Rpt(p, scrmax);
+	fillrect(r, dwhite, 0);
+	fillrect(r, sprompt, 1);
+
 }
 
 void
@@ -165,59 +184,6 @@ alignbigpoint(void)
 		bigpoint.y = bigrect.max.y;
 	if(bigpoint.y < bigrect.min.y)
 		bigpoint.y = bigrect.min.y;
-}
-
-void
-eventloop(void)
-{
-	event(&e);
-	switch(e.kbdc){
-		case Kdel:
-			exits("Kdel");
-			break;
-		case Kdown:
-			bigpoint.y += font->height * Rioscroll;
-			break;
-		case Kup:
-			bigpoint.y -= font->height * Rioscroll;
-			break;
-		case 'r':
-			draw(screen, screen->r, bigscreen, nil, bigrect.min);
-			flushimage(display, 1);
-			return;
-		case 'l':
-			printlinenumber = 1;
-			if(grepped){
-				drawlines(grepstrings);
-				flushimage(display, 1);
-			}
-			printlinenumber = 0;
-			return;
-		case '/':
-			prompt2();
-			drawlines(stack + *grepf);
-			return;
-		case 'n':
-			if(grepped && grepf-grepfound < nfound)
-				++grepf;
-			if(grepf-grepfound > nfound)
-				grepf = &grepfound[nfound];
-			bigpoint.y = *grepf * font->height;
-			drawlines(stack + *grepf);
-			return;
-		case '?': case 'p':
-			if(grepped && grepf-1 > nil)
-				--grepf;
-			drawlines(stack + *grepf);
-			return;
-		default:
-			return;
-	}
-	if(ptinrect(bigpoint, bigrect) == 0 || bigpoint.y < 0)
-		alignbigpoint();
- 	draw(screen, screen->r, display->white, nil, bigpoint);
- 	draw(screen, screen->r, bigscreen, nil, bigpoint);
- 	flushimage(display, 1);
 }
 
 void
@@ -294,12 +260,20 @@ redraw(void)
 {
 	draw(screen, screen->r, bigscreen, nil, bigpoint);
 	flushimage(display, 1);
-//	print("redrawn\n");
 }
 
 void
-logcmd(Fn *f)
+logcmd(Keyfn *fn)
 {
+	static int fd;
+	char buf[32];
+
+	if(fd < 0){
+		snprint(buf, sizeof buf, "/tmp/log.%d", getpid());
+		fd = create(buf, ORDWR, 0666);
+	}
+	snprint(buf, sizeof buf, "%ld\n", fn->r);
+	fprint(fd, buf, strlen(buf));
 }
 
 void
@@ -333,10 +307,21 @@ scrollup(void)
 void
 search(void)
 {
-	prompt2();
-	drawlines(stack + *grepf);
+	prompt3();
+//	drawlines(stack + *grepf);
 }
 
+void
+drawprompt(Image *i, char *s)
+{
+	Point bottom;
+
+	bottom = screen->r.min;
+	bottom.y = screen->r.max.y - font->height;
+
+	draw(screen, Rpt(bottom, screen->r.max), i, nil, ZP);
+	flushimage(display, 1);
+}
 
 void
 main(void)
