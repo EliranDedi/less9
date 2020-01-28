@@ -1,33 +1,37 @@
-#define scrrect	screen->r
+#define	scrrect	screen->r
 #define	scrmax	screen->r.max
 #define	scrmin	screen->r.min
 #define scrmaxx	scrmax.x
 #define scrmaxy	scrmax.y
 #define scrminx scrmin.x
 #define scrminy	scrmin.y
+#define dwhite	display->white
+#define dblack	display->black
+#define Bottom() Pt(scrminx, scrmaxy - font->height)
 
 typedef void Fn(void);
 typedef struct	Keyfn	Keyfn;
-typedef union	Color	Color;
 struct Keyfn {
 	Rune r;
-	//void(*f)(void);
 	Fn *f;
 };
-union Color {
-	ulong u;
+typedef struct	Strimg	Strimg;
+struct Strimg {
 	Image *i;
+	char *s;
 };
 
 
-void quit(void);
-void unused(void);
-void redraw(void);
-void scrolldown(void);
-void scrollup(void);
-void search(void);
-void mark(void);
+void	quit(void);
+void	unused(void);
+void	redraw(void);
+void	scrolldown(void);
+void	scrollup(void);
+void	search(void);
+void	mark(void);
+void	newline(void);
 
+int	dbg;
 Biobuf	*bio;
 char	*stack[8192*4];
 char	**sp = stack;
@@ -68,10 +72,6 @@ Rectangle	bigrect;
 Point	bigpoint;
 Point	cmd;
 
-enum{
-	Rioscroll = 26,
-};
-
 Keyfn kbdfn[]={
 	Kdown,	scrolldown,
 	Kup,	scrollup,
@@ -82,7 +82,13 @@ Keyfn kbdfn[]={
 	Kdel,	quit,
 	'/',	search,
 	'r',	redraw,
-	'm',	mark,
+	'\n',	newline,
+};
+
+Strimg strimg[]={
+	nil, "look for",
+	nil, "not found",
+	nil, "found",
 };
 
 char	*Search = "look for";
