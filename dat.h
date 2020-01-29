@@ -27,6 +27,12 @@ enum {
 	Msearch,
 };
 
+enum {
+	Psearch,
+	Pnotfound,
+	Pfound,
+};
+
 void	quit(void);
 void	unused(void);
 void	redraw(void);
@@ -35,6 +41,7 @@ void	scrollup(void);
 void	search(void);
 void	mark(void);
 void	newline(void);
+void	cancel(void);
 
 int	dbg;
 int	mode;
@@ -95,15 +102,15 @@ Keyfn kbdfn[][32]={
 	},
 	[Msearch]{
 		Kdel,	quit,
-		Kesc,	quit,
+		Kesc,	cancel,
 		nil,	nil,
 	},
 };
 
 Strimg strimg[]={
-	nil, DYellow,	"look for",
-	nil, DRed,	"not found",
-	nil, DGreen,	"found",
+	[Psearch]	nil, DYellow,	"look for",
+	[Pnotfound]	nil, DRed,	"not found",
+	[Pfound]	nil, DGreen,	"found",
 };
 
 char	*Search = "look for";
