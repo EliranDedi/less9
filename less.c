@@ -14,67 +14,11 @@ eresized(int)
 }
 
 void
-grep(void)
-{
-	char **p, **g;
-
-	if(strcmp(kbuf, "") == 0){
-		nfound = 1;
-		return;
-	}
-	g = grepstrings;
-	for(p = stack; p < sp; ++p)
-		if(strstr(*p, kbuf) > nil){
-			grepfound[g-grepstrings] = p-stack;
-			*g++ = *p;
-		}
-	*g = nil;
-	nfound = g-grepstrings-1;
-	grepped = 1;
-}
-
-void
 newline(void)
 {
 	mode = Mnormal;
 }
 
-void
-drawlines(char **lines)
-{
-	char **p;
-	Point pt;
-	char *str;
-
-	if(lines == nil)
-		sysfatal("lines: nil");
-	if(nfound <= 0)
-		sysfatal("drawlines: nfound <= 0, buf %s", kbuf);
-	pt = screen->r.min;
-	draw(undo, screen->r, screen, nil, ZP);
-	draw(screen, screen->r, display->white, nil, ZP);
-	for(p = lines; *p != nil; ++p){
-		if(printlinenumber){
-			str = smprint("%d%s", p-lines, *p);
-			if(str == nil)
-				sysfatal("drawlines: str: nil: %r");
-		}
-		else
-			str = *p;
-		string(screen, pt, display->black, pt, font, str);
-		pt.y += font->height;
-		if(printlinenumber)
-			free(str);
-	}
-	flushimage(display, 1);
-}
-
-void
-drawprompt2(void)
-{
-	drawp = string(screen, drawp, display->black, drawp, font, "/");
-	flushimage(display, 1);
-}
 
 Image*
 allocstringline(char *s, Image *bgcol)
@@ -194,17 +138,6 @@ fnlookup(Rune r)
 		if(k->r == r)
 			return k;
 	return nil;
-}
-
-void
-fnlookup2(Rune r)
-{
-//	int i;
-//
-//	for(i = 0; i < nelem(kbdfn); ++i)
-//		if(kbdfn[i].r == r)
-//			return i;
-//	return -1;
 }
 
 void
