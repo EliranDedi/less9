@@ -14,14 +14,71 @@ eresized(int)
 }
 
 void
+drawstr(Point p, char *s, int bw)
+{
+	string(screen, p, bw ? dwhite : dblack, ZP, font, s);
+}
+
+void
+backspace(void)
+{
+	Point ss;
+	int c;
+
+	c = *ubufpos;
+	if(ubufpos > ubuffer)
+		*--ubufpos = 0;
+	ss = stringsize(font, ubuffer);
+}
+
+void
+drawfrom(Point p)
+{
+ 	draw(screen, screen->r, dwhite, nil, ZP);
+ 	draw(screen, screen->r, bigscreen, nil, p);
+	flushimage(display, 1);
+}
+
+Point
+linetop(int n)
+{
+	Point p;
+
+	p.x = scrminx;
+	p.y = scrminy + n * font->height;
+	return p;
+}
+
+void
+badsearch(void)
+{
+}
+
+
+void
 newline(void)
 {
 	int i;
-
-	if(mode == Msearch){
-		mode = Mnormal;
-		i = 0;
+	
+	if(mode != Msearch)
+		sysfatal("newline: mode: %d, expected %d", mode, Msearch);
+	if(lastsearch == nil || strcmp(ubuffer, lastsearch)){
+		free(lastsearch);
+		lastsearch = strdup(ubuffer);
 	}
+	mode = Mnormal;
+	for(i = match;  i < sp-stack; ++i)
+		if(strstr(stack[i], ubuffer))
+			break;
+	if(i >= sp-stack){
+		drawfrom(linetop(match));
+		return;
+	}
+	match = i;
+	drawfrom(linetop(match));
+	++match;
+	memset(ubuffer, 0, sizeof ubuffer);
+	ubufpos = ubuffer;
 }
 
 void
@@ -46,8 +103,7 @@ void
 fillrect(Rectangle r, Image *i, int f)
 {
 	if(badrect(r) || i == nil)
-		sysfatal("fillrect: bad args: %R / %p / %p %p", r, i, getcallerpc(&r), main);
-//	uintptr getcallerpc(void *firstarg)
+		sysfatal("fillrect: bad args: %R / %p / %p %p", r, i, getcallerpc(&r));
 	draw(screen, r, i, nil, ZP);
 	if(f)
 		flushimage(display, 1);
@@ -64,7 +120,6 @@ prompt3(void)
 	fillrect(r, dwhite, 0);
 	fillrect(r, strimg[Psearch].i, 1);
 	uinput = p;
-//	uinput.x += stringwidth(strimg[Psearch].s);
 	uinput.x += Dx(strimg[Psearch].i->r) + stringwidth(font, " ");
 }
 
@@ -105,18 +160,6 @@ guisetup(void)
 //	if(undo == nil)
 //		sysfatal("allocimage: undo: nil: %r");
 
-}
-
-/* string() screws up tabs and newlines, eliminate that */
-void
-stringfmt(char *s)
-{
-	char *p;
-	char fmt[1024];
-	char *f;
-	char tab[8];
-	int tabs[256];
-	int *t = tabs;
 }
 
 Keyfn*
@@ -193,10 +236,17 @@ scrollup(void)
 void
 search(void)
 {
-	mkgfx();
-	prompt3();
-	mode = Msearch;
+	Point p;
+	Rectangle r;
+	static int didprompt, didgfx;
 
+	p = Bottom();
+	r = Rpt(p, screen->r.max);
+	fillrect(r, dwhite, 0);
+	fillrect(r, strimg[Psearch].i, 1);
+	uinput = p;
+	uinput.x += Dx(strimg[Psearch].i->r) + stringwidth(font, " ");
+	mode = Msearch;
 }
 
 Point
@@ -212,6 +262,13 @@ cancel(void)
  	draw(screen, screen->r, dwhite, nil, bigpoint);
  	draw(screen, screen->r, bigscreen, nil, bigpoint);
 	flushimage(display, 1);
+}
+
+void
+putbuf(void)
+{
+	*ubufpos++ = *kbd;
+	*ubufpos = 0;
 }
 
 void
@@ -240,6 +297,7 @@ main(void)
 	bigpoint.y = bigrect.min.y;
 	draw(screen, screen->r, bigscreen, nil, bigpoint);
 	flushimage(display, 1);
+	mkgfx();
 	einit(Ekeyboard);
 Loop:
 	event(&e);
@@ -249,7 +307,9 @@ Loop:
 		kf->f();
 		goto Loop;
 	}
-//	print("%P\n", uinput);
-	uinput = drawchar(uinput, kbd);
+	if(mode != Mnormal){
+		uinput = drawchar(uinput, kbd);
+		putbuf();
+	}
 	goto Loop;
 }

@@ -42,6 +42,7 @@ void	search(void);
 void	mark(void);
 void	newline(void);
 void	cancel(void);
+void	backspace(void);
 
 int	dbg;
 int	mode;
@@ -56,8 +57,6 @@ Point	ptmp;
 Reprog	regex;
 Event	e;
 Mouse 	*m = &e.mouse;
-char	kbuf[256];
-char	*kbpos = kbuf;
 char	*manpages[16];
 char	*grepstrings[256];
 int	*kbd = &e.kbdc;
@@ -85,6 +84,10 @@ Rectangle	bigrect;
 Point	bigpoint;
 Point	cmd;
 Point	uinput;
+char	ubuffer[256];
+char	*ubufpos = ubuffer;
+char	*lastsearch;
+int	match;
 
 Keyfn kbdfn[][32]={
 	[Mnormal]{
@@ -97,12 +100,13 @@ Keyfn kbdfn[][32]={
 		Kdel,	quit,
 		'/',	search,
 		'r',	redraw,
-		'\n',	newline,
 		nil,	nil,
 	},
 	[Msearch]{
 		Kdel,	quit,
 		Kesc,	cancel,
+		'\n',	newline,
+		Kbs,	backspace,
 		nil,	nil,
 	},
 };
