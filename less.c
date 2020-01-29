@@ -132,59 +132,6 @@ prompt3(void)
 }
 
 void
-prompt2(void)
-{
-	Point bottom, dp; /* drawprompt point */
-	int kbd;
-
-	bottom = screen->r.min;
-	bottom.y = screen->r.max.y - font->height;
-	draw(screen, Rpt(bottom, screen->r.max), fprompt, nil, ZP);
-	flushimage(display, 1);
-	dp = bottom;
-	dp.x = fprompt->r.max.x + scrminx;
-	//print("%P\n", dp);
-	for(;;){
-		kbd = ekbd();
-		kbdfilter(kbd);
-		if(kbd == Kesc){
-			draw(screen, screen->r, bigscreen, nil, bigpoint);
-			flushimage(display, 1);
-			return;
-		}
-//		if(kbd == '?')
-//			placeholder(fork and load argv0 manpage)
-		if(kbd == '\n'){
-			if(grepped && grepf-grepfound < nfound)
-				++grepf;
-			if(grepf-grepfound > nfound)
-				grepf = &grepfound[nfound];
-			if(grepped == 0)
-				grep();
-			bigpoint.y = *grepf * font->height;
-			drawlines(grepstrings + *grepf);
-			break;
-		}
-		if(kbd == Kbs){	/* screws up variable width fonts */
-			dp.x -= stringwidth(font, " ");
-			dp.x = dp.x <= fprompt->r.max.x + scrminx ? fprompt->r.max.x + scrminx : dp.x;
-			draw(screen, Rpt(dp, screen->r.max), display->white, nil, ZP);
-			flushimage(display, 1);
-			if(kbpos > kbuf)
-				--kbpos;
-			*kbpos = 0;
-			continue;
-		}
-		dp = stringn(screen, dp, display->black, dp, font, (char*)&kbd, 1);
-		*kbpos++ = kbd;
-		*kbpos = 0;
-	}
-	memset(kbuf, 0, sizeof kbuf);
-	kbpos = kbuf;
-
-}
-
-void
 alignbigpoint(void)
 {
 	if(bigpoint.y >= bigrect.max.y)
@@ -269,7 +216,7 @@ unused(void)
 void
 quit(void)
 {
-	print("done\n");
+	print("done %d\n", mode);
 	exits("done");
 }
 
@@ -349,6 +296,14 @@ drawchar(Point p, int *c)
 }
 
 void
+cancel(void)
+{
+	mode = Mnormal;
+ 	draw(screen, screen->r, bigscreen, nil, bigpoint);
+	flushimage(display, 1);
+}
+
+void
 main(void)
 {
 	int fn;
@@ -379,8 +334,6 @@ main(void)
 	einit(Ekeyboard);
 Loop:
 	event(&e);
-	if(*kbd == Kdel)
-		exits("kdel");
 	kf = fnlookup(*kbd);
 	if(kf != nil){
 //		print("%p %d\n", kf, kf-kbdfn[mode]);
