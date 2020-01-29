@@ -16,38 +16,29 @@ eresized(int)
 void
 newline(void)
 {
-	mode = Mnormal;
-}
+	int i;
 
-
-Image*
-allocstringline(char *s, Image *bgcol)
-{
-	Image *img;
-	Point zp, sl;
-
-	if(s == nil || bgcol == nil)
-		sysfatal("allocstringline: s/img: nil");
-	zp = ZP;
-	sl = stringsize(font, s);
-	sl.x += stringwidth(font, " "); /* delimiter for user input */
-	img = allocimage(display, Rpt(zp,sl), screen->chan, 0, DWhite);
-	if(img == nil)
-		sysfatal("allocstring: img: nil");
-	sl.x -= stringwidth(font, " "); /* delimiter for user input */
-	draw(img, Rpt(zp,sl), bgcol, nil, ZP);
-	string(img, ZP, display->black, ZP, font, s);
-	return img;
+	if(mode == Msearch){
+		mode = Mnormal;
+		i = 0;
+	}
 }
 
 void
-kbdfilter(int kbd)
+mkgfx(void)
 {
-	switch(kbd){
-	case Kdel:
-		exits("Kdel");
-	case Kack:
-		break;
+	Strimg *si;
+	Point ss;
+	Image *tmp;
+
+	for(si = strimg; si-strimg < nelem(strimg); ++si){
+		ss = stringsize(font, si->s);
+		si->i = allocimage(display, Rpt(ZP,ss), screen->chan, 0, DWhite);
+		tmp = allocimage(display, Rect(0,0,1,1), screen->chan, 1, si->c);
+		if(si->i == nil || tmp == nil)
+			sysfatal("mkgfx: %r");
+		stringbg(si->i, ZP, dblack, ZP, font, si->s, tmp, ZP);
+		freeimage(tmp);
 	}
 }
 
@@ -55,7 +46,8 @@ void
 fillrect(Rectangle r, Image *i, int f)
 {
 	if(badrect(r) || i == nil)
-		sysfatal("fillrect: bad args: %R / %p", r, i);
+		sysfatal("fillrect: bad args: %R / %p / %p %p", r, i, getcallerpc(&r), main);
+//	uintptr getcallerpc(void *firstarg)
 	draw(screen, r, i, nil, ZP);
 	if(f)
 		flushimage(display, 1);
@@ -68,11 +60,12 @@ prompt3(void)
 	Rectangle r;
 
 	p = Bottom();
-	r = Rpt(p, scrmax);
+	r = Rpt(p, screen->r.max);
 	fillrect(r, dwhite, 0);
-	fillrect(r, sprompt, 1);
+	fillrect(r, strimg[Psearch].i, 1);
 	uinput = p;
-	uinput.x += Dx(r);
+//	uinput.x += stringwidth(strimg[Psearch].s);
+	uinput.x += Dx(strimg[Psearch].i->r) + stringwidth(font, " ");
 }
 
 void
@@ -102,18 +95,15 @@ guisetup(void)
 	yellow = allocimage(display, Rect(0,0,1,1), screen->chan, 1, DYellow);
 	if(green == nil || red == nil || yellow == nil)
 		sysfatal("allocimage: colors: %r");
-	eprompt = allocstringline(Error, red);
-	sprompt = allocstringline(Search, yellow);
-	fprompt = allocstringline(Found, green);
 	bigpoint = screen->r.max;
 	bigpoint.y = screen->r.min.y + font->height* (ushort)(sp-stack);
 	bigrect = Rpt(screen->r.min, bigpoint);
 	bigscreen = allocimage(display, bigrect, screen->chan, 0, DWhite);
 	if(bigscreen == nil)
 		sysfatal("allocimage: bigscreen: nil: %r");
-	undo = allocimage(display, screen->r, screen->chan, 0, DWhite);
-	if(undo == nil)
-		sysfatal("allocimage: undo: nil: %r");
+//	undo = allocimage(display, screen->r, screen->chan, 0, DWhite);
+//	if(undo == nil)
+//		sysfatal("allocimage: undo: nil: %r");
 
 }
 
@@ -181,7 +171,6 @@ scrolldown(void)
 
 	n = Dy(screen->r)/font->height/10;
 	n = (n<1) ? 1 : n;
-	print("%d\n", n);
 	bigpoint.y += font->height * n;
 	alignbigpoint();
  	draw(screen, screen->r, display->white, nil, bigpoint);
@@ -195,7 +184,6 @@ scrollup(void)
 
 	n = Dy(screen->r)/font->height/10;
 	n = (n<1) ? 1 : n;
-	print("%d\n", n);
 	bigpoint.y -= font->height * n;
 	alignbigpoint();
  	draw(screen, screen->r, display->white, nil, bigpoint);
@@ -205,21 +193,10 @@ scrollup(void)
 void
 search(void)
 {
+	mkgfx();
 	prompt3();
 	mode = Msearch;
 
-}
-
-void
-drawprompt(Image *i, char *s)
-{
-	Point bottom;
-
-	bottom = screen->r.min;
-	bottom.y = screen->r.max.y - font->height;
-
-	draw(screen, Rpt(bottom, screen->r.max), i, nil, ZP);
-	flushimage(display, 1);
 }
 
 Point
@@ -232,6 +209,7 @@ void
 cancel(void)
 {
 	mode = Mnormal;
+ 	draw(screen, screen->r, dwhite, nil, bigpoint);
  	draw(screen, screen->r, bigscreen, nil, bigpoint);
 	flushimage(display, 1);
 }
@@ -239,8 +217,6 @@ cancel(void)
 void
 main(void)
 {
-	int fn;
-	Fn *f;
 	Keyfn *kf;
 
 	if(initdraw(0,0,0) < 0)
@@ -271,6 +247,9 @@ Loop:
 	if(kf != nil){
 //		print("%p %d\n", kf, kf-kbdfn[mode]);
 		kf->f();
+		goto Loop;
 	}
+//	print("%P\n", uinput);
+	uinput = drawchar(uinput, kbd);
 	goto Loop;
 }
