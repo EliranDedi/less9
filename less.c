@@ -6,6 +6,7 @@
 #include <regexp.h>
 #include <keyboard.h>
 #include "dat.h"
+#include "fns.h"
 
 void
 eresized(int)
@@ -32,16 +33,21 @@ backspace(void)
 }
 
 void
-drawfrom(Point p)
+drawfrom(int n)
 {
+	Point p;
+
+	p.x = scrminx;
+	p.y = scrminy + n * font->height;
  	draw(screen, screen->r, dwhite, nil, ZP);
  	draw(screen, screen->r, bigscreen, nil, p);
 	flushimage(display, 1);
+	bigpoint = p;
 }
 
 Point
 linetop(int n)
-{
+{		
 	Point p;
 
 	p.x = scrminx;
@@ -52,6 +58,18 @@ linetop(int n)
 void
 badsearch(void)
 {
+	Point p;
+	Rectangle r;
+
+	p = Bottom();
+	r = Rpt(p, screen->r.max);
+	fillrect(r, dwhite, 0);
+	fillrect(r, strimg[Pnotfound].i, 1);
+	uinput = p;
+	uinput.x += Dx(strimg[Pnotfound].i->r) + stringwidth(font, " ");
+	drawstr(uinput, ubuffer, 0);
+	memset(ubuffer, 0, sizeof ubuffer);
+	ubufpos = ubuffer;
 }
 
 
@@ -71,11 +89,13 @@ newline(void)
 		if(strstr(stack[i], ubuffer))
 			break;
 	if(i >= sp-stack){
-		drawfrom(linetop(match));
+		drawfrom(match);
+		badsearch();
 		return;
 	}
 	match = i;
-	drawfrom(linetop(match));
+	drawfrom(match);
+//	drawfrom(linetop(match));
 	++match;
 	memset(ubuffer, 0, sizeof ubuffer);
 	ubufpos = ubuffer;
@@ -87,6 +107,7 @@ mkgfx(void)
 	Strimg *si;
 	Point ss;
 	Image *tmp;
+	Image *bg[]={dblack, dwhite};
 
 	for(si = strimg; si-strimg < nelem(strimg); ++si){
 		ss = stringsize(font, si->s);
@@ -94,7 +115,7 @@ mkgfx(void)
 		tmp = allocimage(display, Rect(0,0,1,1), screen->chan, 1, si->c);
 		if(si->i == nil || tmp == nil)
 			sysfatal("mkgfx: %r");
-		stringbg(si->i, ZP, dblack, ZP, font, si->s, tmp, ZP);
+		stringbg(si->i, ZP, bg[si->bw], ZP, font, si->s, tmp, ZP);
 		freeimage(tmp);
 	}
 }
@@ -174,23 +195,10 @@ fnlookup(Rune r)
 }
 
 void
-unused(void)
-{
-	print("%C: unused\n", *kbd);
-}
-
-void
 quit(void)
 {
 	print("done %d\n", mode);
 	exits("done");
-}
-
-void
-redraw(void)
-{
-	draw(screen, screen->r, bigscreen, nil, bigpoint);
-	flushimage(display, 1);
 }
 
 void
@@ -304,7 +312,8 @@ Loop:
 	kf = fnlookup(*kbd);
 	if(kf != nil){
 //		print("%p %d\n", kf, kf-kbdfn[mode]);
-		kf->f();
+		if(kf->f != nil)
+			kf->f();
 		goto Loop;
 	}
 	if(mode != Mnormal){
