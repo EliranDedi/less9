@@ -20,6 +20,7 @@ struct Strimg {
 	Image *i;
 	ulong c;
 	char *s;
+	int bw;
 };
 
 enum {
@@ -34,8 +35,6 @@ enum {
 };
 
 void	quit(void);
-void	unused(void);
-void	redraw(void);
 void	scrolldown(void);
 void	scrollup(void);
 void	search(void);
@@ -93,13 +92,11 @@ Keyfn kbdfn[][32]={
 	[Mnormal]{
 		Kdown,	scrolldown,
 		Kup,	scrollup,
-		Kleft,	unused,
-		Kright,	unused,
+		Kleft,	nil,
+		Kright,	nil,
 		'q',	quit,
-		Kesc,	quit,
 		Kdel,	quit,
 		'/',	search,
-		'r',	redraw,
 		nil,	nil,
 	},
 	[Msearch]{
@@ -112,9 +109,9 @@ Keyfn kbdfn[][32]={
 };
 
 Strimg strimg[]={
-	[Psearch]	nil, DYellow,	"look for",
-	[Pnotfound]	nil, DRed,	"not found",
-	[Pfound]	nil, DGreen,	"found",
+	[Psearch]	nil, DYellow,	"/look for/",	0,
+	[Pnotfound]	nil, DRed,	"not found:",	1,
+	[Pfound]	nil, DGreen,	"found",	0,
 };
 
 char	*Search = "look for";
